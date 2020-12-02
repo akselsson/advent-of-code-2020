@@ -62,34 +62,32 @@ namespace Day2Tests
             {
                 var passwordData = PasswordFileLine.Parse(line);
                 var charsAtPosition = new[]
-                    {passwordData.Password[passwordData.Min - 1], passwordData.Password[passwordData.Max - 1]};
+                {
+                    passwordData.Password[passwordData.Min - 1], 
+                    passwordData.Password[passwordData.Max - 1]
+                };
                 yield return charsAtPosition.Count(x => x == passwordData.Character) == 1;
             }
         }
         
         public class PasswordFileLine
         {
-            public int Min { get; }
-            public int Max { get; }
-            public char Character { get; }
-            public string Password { get; }
-
-            private PasswordFileLine(int min, int max, char character, string password)
-            {
-                Min = min;
-                Max = max;
-                Character = character;
-                Password = password;
-            }
+            public int Min { get; private set; }
+            public int Max { get; private set; }
+            public char Character { get; private set; }
+            public string Password { get; private set; }
 
             public static PasswordFileLine Parse(string line)
             {
                 var ruleRegex = new Regex("(\\d+)-(\\d+) (\\w): (.*)");
                 var result = ruleRegex.Match(line);
-                var passwordData = new PasswordFileLine(int.Parse(result.Groups[1].Value),
-                    int.Parse(result.Groups[2].Value),
-                    result.Groups[3].Value[0], result.Groups[4].Value);
-                return passwordData;
+                return new PasswordFileLine
+                {
+                    Min = int.Parse(result.Groups[1].Value),
+                    Max = int.Parse(result.Groups[2].Value),
+                    Character = result.Groups[3].Value[0],
+                    Password = result.Groups[4].Value
+                };
             }
         }
     }
