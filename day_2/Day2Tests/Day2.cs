@@ -46,5 +46,42 @@ namespace Day2Tests
                 yield return characterCount >= passwordData.Min && characterCount <= passwordData.Max;
             }
         }
+        
+        [Fact]
+        public void Eample2()
+        {
+            var input = new string[]{
+                "1-3 a: abcde",
+                "1-3 b: cdefg",
+                "2-9 c: ccccccccc"};
+            Assert.Equal(CheckPasswordsAssigment2(input),new[]{true,false,false});
+        }
+        
+        [Fact]
+        public void Assignment2()
+        {
+            var input = File.ReadAllLines("input.txt");
+            Assert.Equal(267,CheckPasswordsAssigment2(input).Count(x=>x));
+            Assert.Equal(733,CheckPasswordsAssigment2(input).Count(x=>!x));
+        }
+
+        IEnumerable<bool> CheckPasswordsAssigment2(string[] lines)
+        {
+            foreach (var line in lines)
+            {
+                var ruleRegex = new Regex("(\\d+)-(\\d+) (\\w): (.*)");
+                var result = ruleRegex.Match(line);
+                var passwordData = new
+                {
+                    Min = int.Parse(result.Groups[1].Value),
+                    Max = int.Parse(result.Groups[2].Value),
+                    Character = result.Groups[3].Value[0],
+                    Password = result.Groups[4].Value
+                };
+                var charsAtPosition = new[]
+                    {passwordData.Password[passwordData.Min - 1], passwordData.Password[passwordData.Max - 1]};
+                yield return charsAtPosition.Count(x => x == passwordData.Character) == 1;
+            }
+        }
     }
 }
