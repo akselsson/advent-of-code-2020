@@ -1,3 +1,4 @@
+using System.IO;
 using NUnit.Framework;
 
 namespace Day3
@@ -24,6 +25,13 @@ namespace Day3
 
             var trees = CountTrees(input, deltaX: 3, deltaY: 1);
             Assert.AreEqual(7, trees);
+        }
+
+        [Test]
+        public void Answer1()
+        {
+            var input = File.ReadAllLines("input.txt");
+            Assert.AreEqual(207, CountTrees(input, 3, 1));
         }
 
         private int CountTrees(string[] input, int deltaX, int deltaY)
