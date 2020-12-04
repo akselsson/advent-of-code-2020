@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using NUnit.Framework;
@@ -35,9 +36,12 @@ namespace Day4
         "hcl:#cfa07d eyr:2025 pid:166559648",
         "iyr:2011 ecl:brn hgt:59in"
     };
+
+    private static string[] Input = File.ReadAllLines("input.txt");
+    
     
         [Test]
-        public void Test1()
+        public void Example1()
         {
             bool[] expected =
             {
@@ -47,6 +51,13 @@ namespace Day4
                 false,
             };
             CollectionAssert.AreEqual(expected,Validate(Example).ToArray());
+        }
+        
+        [Test]
+        public void Assignment1()
+        {
+            Assert.AreEqual(295,Validate(Input).Count());
+            Assert.AreEqual(264,Validate(Input).Count(x => x));
         }
 
         private IEnumerable<bool> Validate(string[] passport)
