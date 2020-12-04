@@ -35,86 +35,80 @@ namespace Day4
                 true,
                 false,
                 true,
-                false,
+                false
             };
-            CollectionAssert.AreEqual(expected, Validate(Example).ToArray());
+            CollectionAssert.AreEqual(expected, Parse(Example).Select(x=>x.IsValid).ToArray());
         }
 
         [Test]
         public void Assignment1()
         {
-            Assert.AreEqual(295, Validate(Input).Count());
-            Assert.AreEqual(264, Validate(Input).Count(x => x));
+            Assert.AreEqual(295, Parse(Input).Count());
+            Assert.AreEqual(264, Parse(Input).Count(x => x.IsValid));
         }
 
-        private IEnumerable<bool> Validate(string[] passport)
+        private IEnumerable<Passport> Parse(string[] lines)
         {
-            var toPassports = passport.Aggregate(new
-            {
-                Current = new List<string>(),
-                Previous = new List<List<string>>()
-            }, (agg, line) =>
-            {
-                if (string.IsNullOrEmpty(line))
-                {
-                    return new
+            return lines.Aggregate(
+                    new List<List<string>> {new List<string>()}, 
+                    (agg, line) =>
                     {
-                        Current = new List<string>(),
-                        Previous = agg.Previous.Concat(new[] {agg.Current}).ToList()
-                    };
-                }
+                        if (string.IsNullOrEmpty(line))
+                        {
+                            agg.Add(new List<string>());
+                            return agg;
+                        }
 
-                agg.Current.Add(line);
-                return agg;
-            });
-            var passports = toPassports.Previous.Concat(new[] {toPassports.Current});
-            return passports
+                        agg.Last().Add(line);
+                        return agg;
+                    })
                 .Select(x => x.SelectMany(y => y.Split(' ')))
-                .Select(Passport.Parse).Select(x => x.IsValid);
+                .Select(Passport.Parse);
         }
-        
+
         internal class Passport
+        {
+            private IDictionary<string, string> _entries;
+
+            /*
+            byr (Birth Year)
+            iyr (Issue Year)
+            eyr (Expiration Year)
+            hgt (Height)
+            hcl (Hair Color)
+            ecl (Eye Color)
+            pid (Passport ID)
+            cid (Country ID)
+            */
+            
+            private readonly IDictionary<string, bool> _entryRequired = new Dictionary<string, bool>
             {
-                /*
-                byr (Birth Year)
-                iyr (Issue Year)
-                eyr (Expiration Year)
-                hgt (Height)
-                hcl (Hair Color)
-                ecl (Eye Color)
-                pid (Passport ID)
-                cid (Country ID)
-                */
-                private IDictionary<string, bool> EntryRequired = new Dictionary<string, bool>
+                {"byr", true},
+                {"iyr", true},
+                {"eyr", true},
+                {"hgt", true},
+                {"hcl", true},
+                {"ecl", true},
+                {"pid", true},
+                {"cid", false}
+            };
+
+            public bool IsValid
+            {
+                get
                 {
-                    {"byr", true},
-                    {"iyr", true},
-                    {"eyr", true},
-                    {"hgt", true},
-                    {"hcl", true},
-                    {"ecl", true},
-                    {"pid", true},
-                    {"cid", false},
-                };
-        
-                private IDictionary<string, string> _entries;
-        
-                public static Passport Parse(IEnumerable<string> entries)
-                {
-                    return new Passport()
-                    {
-                        _entries = entries.Select(x => x.Split(':')).ToDictionary(k => k[0], v => v[1])
-                    };
-                }
-        
-                public bool IsValid
-                {
-                    get
-                    {
-                        return _entries.All(x => EntryRequired.ContainsKey(x.Key)) &&
-                               EntryRequired.Where(y => y.Value).All(entry => _entries.ContainsKey(entry.Key));
-                    }
+                    return _entries.All(x => _entryRequired.ContainsKey(x.Key)) &&
+                           _entryRequired.Where(y => y.Value).All(entry => _entries.ContainsKey(entry.Key));
                 }
             }
+
+            public static Passport Parse(IEnumerable<string> entries)
+            {
+                return new Passport
+                {
+                    _entries = entries.Select(x => x.Split(':')).ToDictionary(k => k[0], v => v[1])
+                };
+            }
+        }
     }
 }
