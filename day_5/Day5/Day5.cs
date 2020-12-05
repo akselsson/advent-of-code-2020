@@ -7,8 +7,7 @@ namespace Day5
 {
     public class Day5
     {
-        private static readonly string[] ExampleInput = new[]
-        {
+        private static readonly string[] ExampleInput = {
             "BFFFBBFRRR",
             "FFFBBBFRRR",
             "BBFFBBFRLL"
@@ -24,7 +23,7 @@ namespace Day5
                 (70, 7, 567),
                 (14, 7, 119),
                 (102, 4, 820)
-            }, ExampleInput.Select(x => ParseSeat(x)));
+            }, ExampleInput.Select(ParseSeat));
         }
 
         [Test]
@@ -32,6 +31,8 @@ namespace Day5
         {
             Assert.AreEqual(922,Input.Select(ParseSeat).Select(x=>x.Item3).Max());
         }
+        
+        
 
         [Test]
         public void Assignment2()
@@ -41,6 +42,55 @@ namespace Day5
             var lastBeforeGap = seats.TakeWhile(x => ++first == x.Item3).Last();
             
             Assert.AreEqual(747,lastBeforeGap.Item3+1);
+        }
+
+        [Test]
+        public void Example1_version2()
+        {
+            Assert.AreEqual(567,ParseSeat2(ExampleInput[0]));
+        }
+        
+        [Test]
+        public void Assignment1_version2()
+        {
+            Assert.AreEqual(922,Input.Select(ParseSeat2).Max());
+        }
+        
+        [Test]
+        public void Assignment2_version2()
+        {
+            var seats = Input.Select(ParseSeat2).OrderBy(x=>x);
+            var gap = seats.Aggregate(
+                (previous: 0, gap: 0),
+                (agg, curr) => curr == agg.previous + 1 ? (curr, agg.gap) : (curr, curr-1)
+                );
+            Assert.AreEqual(747,gap.gap);
+        }
+
+        private int ParseSeat2(string input)
+        {
+            int val = 0;
+            int mask = 1;
+            foreach (var character in input.Reverse())
+            {
+
+                switch (character)
+                {
+                    case 'F':
+                    case 'L':
+                        break;
+                    case 'B':
+                    case 'R':
+                        val |= mask;
+
+                        break;
+                }
+                mask <<= 1;
+
+
+            }
+
+            return val;
         }
 
         private (int,int,int) ParseSeat(string input)
