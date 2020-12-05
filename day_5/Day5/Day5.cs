@@ -29,7 +29,7 @@ namespace Day5
         [Test]
         public void Assignment1()
         {
-            Assert.AreEqual(922,Input.Select(ParseSeat).Select(x=>x.Item3).Max());
+            Assert.AreEqual(922,Input.Select(ParseSeat).Select(x=>x.id).Max());
         }
         
         
@@ -37,11 +37,11 @@ namespace Day5
         [Test]
         public void Assignment2()
         {
-            var seats = Input.Select(ParseSeat).OrderBy(x=>x.Item1).ThenBy(x=>x.Item2).ToArray();
-            var first = seats.First().Item3-1;
-            var lastBeforeGap = seats.TakeWhile(x => ++first == x.Item3).Last();
+            var seats = Input.Select(ParseSeat).OrderBy(x=>x.id).ToArray();
+            var first = seats.First().id-1;
+            var lastBeforeGap = seats.TakeWhile(x => ++first == x.id).Last();
             
-            Assert.AreEqual(747,lastBeforeGap.Item3+1);
+            Assert.AreEqual(747,lastBeforeGap.id+1);
         }
 
         [Test]
@@ -73,7 +73,6 @@ namespace Day5
             int mask = 1;
             foreach (var character in input.Reverse())
             {
-
                 switch (character)
                 {
                     case 'F':
@@ -86,14 +85,11 @@ namespace Day5
                         break;
                 }
                 mask <<= 1;
-
-
             }
-
             return val;
         }
 
-        private (int,int,int) ParseSeat(string input)
+        private (int row,int column,int id) ParseSeat(string input)
         {
             var row = ParseBSP(input.Substring(0, 7),'F','B');
             var column = ParseBSP(input.Substring(7, 3),'L','R');
