@@ -33,6 +33,16 @@ namespace Day5
             Assert.AreEqual(922,Input.Select(ParseSeat).Select(x=>x.Item3).Max());
         }
 
+        [Test]
+        public void Assignment2()
+        {
+            var seats = Input.Select(ParseSeat).OrderBy(x=>x.Item1).ThenBy(x=>x.Item2).ToArray();
+            var first = seats.First().Item3-1;
+            var lastBeforeGap = seats.TakeWhile(x => ++first == x.Item3).Last();
+            
+            Assert.AreEqual(747,lastBeforeGap.Item3+1);
+        }
+
         private (int,int,int) ParseSeat(string input)
         {
             var row = ParseBSP(input.Substring(0, 7),'F','B');
