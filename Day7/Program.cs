@@ -14,12 +14,9 @@ var contentPattern = new Regex(@"(?<count>\d+) (?<colour>[a-z ]*?) bags?");
 var rules = input.Select(Extract).ToArray();
 
 
-bool Cancontain(string colour, BagRule rule, HashSet<string> visitedColours)
+bool Cancontain(string colour, BagRule rule)
 {
-    if (visitedColours.Contains(rule.Colour))
-    {
-        return false;
-    }
+
     if (rule.CanContain.Any(x => x.Colour == colour))
     {
         return true;
@@ -27,16 +24,11 @@ bool Cancontain(string colour, BagRule rule, HashSet<string> visitedColours)
 
     return rule.CanContain.Any(x =>
         rules.Where(y => y.Colour == x.Colour)
-            .Any(y => Cancontain(colour, y, visitedColours.Concat(new[] {rule.Colour}).ToHashSet())));
+            .Any(y => Cancontain(colour, y)));
 
 }
 
-//foreach (var rule in rules)
-//{
-    //Console.WriteLine($"{Cancontain("shiny gold",rule,new HashSet<string>())} {rule}");
-//}
-
-Console.WriteLine($"Part 1: {rules.Count(x => Cancontain("shiny gold", x, new HashSet<string>()))}");
+Console.WriteLine($"Part 1: {rules.Count(x => Cancontain("shiny gold", x))}");
 // input.txt: 238
 
 
