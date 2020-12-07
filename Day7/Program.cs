@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks.Sources;
 
 var file = args[0];
 var input = File.ReadAllLines(file);
@@ -28,8 +31,27 @@ bool CanContain(string colour, BagRule rule)
 
 }
 
-Console.WriteLine($"Part 1: {rules.Count(x => CanContain("shiny gold", x))}");
+int CountBags(string colour, int depth)
+{
+    var rule = rules.FirstOrDefault(x => x.Colour == colour);
+    if (rule == null)
+    {
+        return 0;
+    }
 
+    var self = depth == 0 ? 0 : 1;
+    var bags = self + rule.Contents.Sum(x =>
+    {
+        Console.WriteLine($"{new string(' ',depth)}{colour}: {x.Colour} {x.Count}");
+
+        return x.Count * CountBags(x.Colour, depth + 2);
+    });
+    Console.WriteLine($"{new string(' ',depth)}{colour}: {bags}");
+    return bags;
+}
+
+Console.WriteLine($"Part 1: {rules.Count(x => CanContain("shiny gold", x))}");
+Console.WriteLine($"Part 2: {CountBags("shiny gold",0)}");
 
 BagRule Extract(string line)
 {
