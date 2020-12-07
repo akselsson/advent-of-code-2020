@@ -16,6 +16,11 @@ var containerPattern = new Regex(@"^(?<container_colour>[a-z ]*?) bags?");
 var contentPattern = new Regex(@"(?<count>\d+) (?<colour>[a-z ]*?) bags?");
 var rules = input.Select(Extract).ToArray();
 
+Console.WriteLine($"Part 1: {rules.Count(x => CanContain("shiny gold", x))}");
+Console.WriteLine($"Part 2: {CountBags("shiny gold",0)}");
+
+// Part 1: 238
+// Part 2: 82930
 
 bool CanContain(string colour, BagRule rule)
 {
@@ -40,18 +45,10 @@ int CountBags(string colour, int depth)
     }
 
     var self = depth == 0 ? 0 : 1;
-    var bags = self + rule.Contents.Sum(x =>
-    {
-        Console.WriteLine($"{new string(' ',depth)}{colour}: {x.Colour} {x.Count}");
-
-        return x.Count * CountBags(x.Colour, depth + 2);
-    });
-    Console.WriteLine($"{new string(' ',depth)}{colour}: {bags}");
-    return bags;
+    return self + rule.Contents.Sum(x => x.Count * CountBags(x.Colour, depth + 1));
 }
 
-Console.WriteLine($"Part 1: {rules.Count(x => CanContain("shiny gold", x))}");
-Console.WriteLine($"Part 2: {CountBags("shiny gold",0)}");
+
 
 BagRule Extract(string line)
 {
