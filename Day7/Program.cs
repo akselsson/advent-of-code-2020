@@ -14,26 +14,21 @@ var contentPattern = new Regex(@"(?<count>\d+) (?<colour>[a-z ]*?) bags?");
 var rules = input.Select(Extract).ToArray();
 
 
-bool Cancontain(string colour, BagRule rule)
+bool CanContain(string colour, BagRule rule)
 {
 
-    if (rule.CanContain.Any(x => x.Colour == colour))
+    if (rule.Contents.Any(x => x.Colour == colour))
     {
         return true;
     }
 
-    return rule.CanContain.Any(x =>
+    return rule.Contents.Any(x =>
         rules.Where(y => y.Colour == x.Colour)
-            .Any(y => Cancontain(colour, y)));
+            .Any(y => CanContain(colour, y)));
 
 }
 
-Console.WriteLine($"Part 1: {rules.Count(x => Cancontain("shiny gold", x))}");
-// input.txt: 238
-
-
-
-
+Console.WriteLine($"Part 1: {rules.Count(x => CanContain("shiny gold", x))}");
 
 
 BagRule Extract(string line)
@@ -51,14 +46,14 @@ BagRule Extract(string line)
     {
         Colour = colour,
         Input = line,
-        CanContain = contentPattern.Matches(line).Select(x=> (x.Groups["colour"].Value, int.Parse(x.Groups["count"].Value))).ToList()
+        Contents = contentPattern.Matches(line).Select(x=> (x.Groups["colour"].Value, int.Parse(x.Groups["count"].Value))).ToList()
     };
 }
 
 record BagRule
 {
     public string Colour { get; init; }
-    public List<(string Colour, int Count)> CanContain { get; init; } = new();
+    public List<(string Colour, int Count)> Contents { get; init; } = new();
     public string Input { get; init; }
 }
 
