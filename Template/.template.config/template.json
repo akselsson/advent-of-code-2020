@@ -1,0 +1,11 @@
+{
+  "author": "Patrik Akselsson",
+  "classifications": [ "AdventOfCode" ],
+  "name": "AdventOfCode",
+  "identity": "AdventOfCode",
+  "shortName": "AdventOfCode",
+  "tags": { "language": "C#" },
+  "sourceName": "Template",
+  "preferNameDirectory" : "true",
+  
+}
