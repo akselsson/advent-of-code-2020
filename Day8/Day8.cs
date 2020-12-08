@@ -54,11 +54,11 @@ acc +6";
 
         private class Program
         {
-            private readonly (string operation, int value)[] _stack;
+            private readonly (string operation, int value)[] _operations;
 
             private Program(IEnumerable<(string operation, int value)> operations)
             {
-                _stack = operations.ToArray();
+                this._operations = operations.ToArray();
             }
 
             public (bool Completed, int Value) Run()
@@ -66,10 +66,10 @@ acc +6";
                 var visitedLocations = new HashSet<int>();
                 var currentLocation = 0;
                 var value = 0;
-                while (currentLocation < _stack.Length && !visitedLocations.Contains(currentLocation))
+                while (currentLocation < _operations.Length && !visitedLocations.Contains(currentLocation))
                 {
                     visitedLocations.Add(currentLocation);
-                    var operation = _stack[currentLocation];
+                    var operation = _operations[currentLocation];
 
                     switch (operation.operation)
                     {
@@ -88,7 +88,7 @@ acc +6";
                     Console.WriteLine($"{currentLocation}: {operation} {value}");
                 }
 
-                return (currentLocation == _stack.Length, value);
+                return (currentLocation == _operations.Length, value);
             }
 
             public static Program Parse(string example)
@@ -105,9 +105,9 @@ acc +6";
             public Program Fix()
             {
                 
-                for (int i = 0; i < _stack.Length; i++)
+                for (int i = 0; i < _operations.Length; i++)
                 {
-                    switch (_stack[i].operation)
+                    switch (_operations[i].operation)
                     {
                         case "jmp":
                             var newProgram = SwitchOperation(i, "nop");
@@ -131,9 +131,9 @@ acc +6";
 
             private Program SwitchOperation(int i, string operation)
             {
-                var newStack = _stack.ToList();
-                newStack[i] = (operation, newStack[i].value);
-                var newProgram = new Program(newStack);
+                var newOperations = _operations.ToList();
+                newOperations[i] = (operation, newOperations[i].value);
+                var newProgram = new Program(newOperations);
                 return newProgram;
             }
         }
