@@ -26,24 +26,29 @@ acc +6";
         public void Example1()
         {
             var program = Program.Parse(Example);
-            Assert.AreEqual(5, program.Run());
+            Assert.AreEqual(5, program.Run().Value);
         }
 
         [Test]
         public void Part1()
         {
             var program = Program.Parse(Input);
-            Assert.AreEqual(1941, program.Run());
+            Assert.AreEqual(1941, program.Run().Value);
         }
 
         [Test]
         public void Example2()
         {
+            var program = Program.Parse(Example).Fix();
+            Assert.AreEqual(8,program.Run().Value);
+            
         }
 
         [Test]
         public void Part2()
         {
+            var program = Program.Parse(Input).Fix();
+            Assert.AreEqual(2096,program.Run().Value);
         }
 
 
@@ -56,12 +61,12 @@ acc +6";
                 _stack = operations.ToArray();
             }
 
-            public int Run()
+            public (bool Completed, int Value) Run()
             {
                 var visitedLocations = new HashSet<int>();
                 var currentLocation = 0;
                 var value = 0;
-                while (!visitedLocations.Contains(currentLocation))
+                while (currentLocation < _stack.Length && !visitedLocations.Contains(currentLocation))
                 {
                     visitedLocations.Add(currentLocation);
                     var operation = _stack[currentLocation];
@@ -83,7 +88,7 @@ acc +6";
                     Console.WriteLine($"{currentLocation}: {operation} {value}");
                 }
 
-                return value;
+                return (currentLocation == _stack.Length, value);
             }
 
             public static Program Parse(string example)
@@ -95,6 +100,41 @@ acc +6";
                     .Where(x => x.Success)
                     .Select(match => (match.Groups["op"].Value, int.Parse(match.Groups["value"].Value)));
                 return new Program(operations);
+            }
+
+            public Program Fix()
+            {
+                
+                for (int i = 0; i < _stack.Length; i++)
+                {
+                    switch (_stack[i].operation)
+                    {
+                        case "jmp":
+                            var newProgram = SwitchOperation(i, "nop");
+                            if (newProgram.Run().Completed)
+                            {
+                                return newProgram;
+                            }
+                            break;
+                        case "nop":
+                            var newProgram2 = SwitchOperation(i, "nop");
+                            if (newProgram2.Run().Completed)
+                            {
+                                return newProgram2;
+                            }
+                            break;
+                    }
+                }
+
+                return this;
+            }
+
+            private Program SwitchOperation(int i, string operation)
+            {
+                var newStack = _stack.ToList();
+                newStack[i] = (operation, newStack[i].value);
+                var newProgram = new Program(newStack);
+                return newProgram;
             }
         }
     }
