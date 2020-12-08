@@ -39,16 +39,16 @@ acc +6";
         [Test]
         public void Example2()
         {
-            var program = Program.Parse(Example).Fix();
-            Assert.AreEqual(8,program.Run().Value);
+            var program = Program.Parse(Example);
+            Assert.AreEqual(8,program.Fix().Value);
             
         }
 
         [Test]
         public void Part2()
         {
-            var program = Program.Parse(Input).Fix();
-            Assert.AreEqual(2096,program.Run().Value);
+            var program = Program.Parse(Input);
+            Assert.AreEqual(2096,program.Fix().Value);
         }
 
 
@@ -56,7 +56,7 @@ acc +6";
         {
             private readonly (string operation, int value)[] _operations;
 
-            private Program(IEnumerable<(string operation, int value)> operations)
+            private Program((string operation, int value)[] operations)
             {
                 this._operations = operations.ToArray();
             }
@@ -99,42 +99,44 @@ acc +6";
                     .Select(line => parser.Match(line))
                     .Where(x => x.Success)
                     .Select(match => (match.Groups["op"].Value, int.Parse(match.Groups["value"].Value)));
-                return new Program(operations);
+                return new Program(operations.ToArray());
             }
 
-            public Program Fix()
+            public (bool Completed, int Value) Fix()
             {
-                
+                var operationsClone = _operations.ToArray(); 
                 for (int i = 0; i < _operations.Length; i++)
                 {
                     switch (_operations[i].operation)
                     {
                         case "jmp":
-                            var newProgram = SwitchOperation(i, "nop");
-                            if (newProgram.Run().Completed)
+                            var newResult = TryRunWithOperation(operationsClone, i, "nop");
+                            if (newResult.Completed)
                             {
-                                return newProgram;
+                                return newResult;
                             }
                             break;
                         case "nop":
-                            var newProgram2 = SwitchOperation(i, "nop");
-                            if (newProgram2.Run().Completed)
+                            var newResult2 = TryRunWithOperation(operationsClone,i, "jmp");
+                            if (newResult2.Completed)
                             {
-                                return newProgram2;
+                                return newResult2;
                             }
                             break;
                     }
                 }
 
-                return this;
+                return (false,0);
             }
 
-            private Program SwitchOperation(int i, string operation)
+            private (bool Completed, int Value) TryRunWithOperation((string operation, int value)[] operations, int i, string operation)
             {
-                var newOperations = _operations.ToList();
-                newOperations[i] = (operation, newOperations[i].value);
-                var newProgram = new Program(newOperations);
-                return newProgram;
+                var oldOperation = operations[i];
+                operations[i] = (operation, operations[i].value);
+                var newProgram = new Program(operations);
+                var result = newProgram.Run();
+                operations[i] = oldOperation;
+                return result;
             }
         }
     }
