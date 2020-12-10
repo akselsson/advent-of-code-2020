@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -53,9 +54,7 @@ namespace Day10
 
         private (int one, int three) CalculateDifferences(string input)
         {
-            var differences = input.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-                .Select(int.Parse)
-                .OrderBy(x => x)
+            var differences = ParseInput(input)
                 .Aggregate((one: 0, three: 0, voltage: 0), (agg, curr) =>
                 {
                     Console.WriteLine($"{curr} {agg}");
@@ -65,6 +64,13 @@ namespace Day10
                         curr);
                 });
             return (differences.one,differences.three+1);
+        }
+
+        private static IOrderedEnumerable<int> ParseInput(string input)
+        {
+            return input.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                .Select(int.Parse)
+                .OrderBy(x => x);
         }
 
         [Test]
@@ -77,11 +83,30 @@ namespace Day10
         [Test]
         public void Example2()
         {
+            var arrangements = CountArrangements(Example);
+            Assert.AreEqual(19208,arrangements);
         }
+
+        private long CountArrangements(string input)
+        {
+            var arrangements = ParseInput(input)
+                .Aggregate(
+                    (IEnumerable<(int voltage, long paths)>) new[] {(0, (long)1)},
+                    (agg, curr) =>
+                    {
+                        var candidates = agg.Where(x => curr - x.voltage <= 3).ToArray();
+                        var pathsToCurrent = candidates.Sum(x => x.paths);
+                        return candidates.Concat(new[] {(curr, pathsToCurrent)});
+                    }).Last();
+            return arrangements.paths;
+        }
+
 
         [Test]
         public void Part2()
         {
+            var arrangements = CountArrangements(Input);
+            Assert.AreEqual(3022415986688,arrangements);
         }
     }
 }
