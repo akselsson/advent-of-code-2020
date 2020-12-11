@@ -24,7 +24,7 @@ L.LLLLL.LL";
         [Test]
         public void Example1()
         {
-            var seats = Seats.Parse(Example);
+            var seats = Seats.Parse(Example,Seats.CountAdjacentOccupied);
             seats.RunUntilStable();
             Assert.AreEqual(37, seats.CountOccupied());
         }
@@ -32,7 +32,7 @@ L.LLLLL.LL";
         [Test]
         public void Part1()
         {
-            var seats = Seats.Parse(Input);
+            var seats = Seats.Parse(Input,Seats.CountAdjacentOccupied);
             seats.RunUntilStable();
             Assert.AreEqual(2261, seats.CountOccupied());
         }
@@ -51,11 +51,14 @@ L.LLLLL.LL";
     public class Seats
     {
         private char[][] _state;
-        public static Seats Parse(string example)
+        private Func<char[][], int, int, int> _counter;
+
+        public static Seats Parse(string example, Func<char[][],int,int,int> counter)
         {
             return new()
             {
-                _state = example.Split(Environment.NewLine).Select(x => x.ToCharArray()).ToArray()
+                _state = example.Split(Environment.NewLine).Select(x => x.ToCharArray()).ToArray(),
+                _counter = counter
             };
         }
 
@@ -95,12 +98,12 @@ L.LLLLL.LL";
                     {
 
                         case 'L':
-                            if (CountAdjacentOccupied(i, j) == 0){
+                            if (_counter(_state, i, j) == 0){
                                 newState[i][j] = '#';
                             }
                             break;
                         case '#':
-                            if (CountAdjacentOccupied(i, j) >= 4)
+                            if (_counter(_state, i, j) >= 4)
                             {
                                 newState[i][j] = 'L';
                             }
@@ -112,12 +115,12 @@ L.LLLLL.LL";
 
         }
 
-        private int CountAdjacentOccupied(in int row, in int column)
+        public static int CountAdjacentOccupied(char[][] state, int row, int column)
         {
             var count = 0;
-            for (int i = Math.Max(0,row-1); i < Math.Min(_state.Length,row+2); i++)
+            for (int i = Math.Max(0,row-1); i < Math.Min(state.Length,row+2); i++)
             {
-                var candidateRow = _state[i];
+                var candidateRow = state[i];
                 for (int j = Math.Max(0,column-1); j < Math.Min(candidateRow.Length,column+2); j++)
                 {
                     if (i == row && j == column)
@@ -139,5 +142,7 @@ L.LLLLL.LL";
         {
             return _state.Sum(x => x.Count(y => y == '#'));
         }
+
+        
     }
 }
