@@ -22,23 +22,42 @@ F11";
         public void Example1()
         {
             var startingPosition = (x:0,y:0,direction:'E');
-            var newPosition = Move(Example, startingPosition);
+            var newPosition = MoveAll(Example, startingPosition);
             Assert.AreEqual(25,Distance(startingPosition,newPosition));
         }
         
+        [Test]
+        public void Part1_CanRotate()
+        {
+            var startingPosition = (x:0,y:0,direction:'N');
+            var newPosition = Move(startingPosition,('L',90));
+            Assert.AreEqual((0,0,'W'),newPosition);
+        }
         
-
+        [Test]
+        public void Part1()
+        {
+            var startingPosition = (x:0,y:0,direction:'E');
+            var newPosition = MoveAll(Input, startingPosition);
+            Assert.AreEqual(521,Distance(startingPosition,newPosition));
+        }
+        
         private int Distance((int x, int y, char direction) pos1, (int x, int y, char direction) pos2)
         {
-            return Math.Abs(pos1.x - pos2.x) + Math.Abs(pos1.x-pos2.y);
+            Console.WriteLine($"{pos1} {pos2}");
+            return Math.Abs(pos1.x - pos2.x) + Math.Abs(pos1.y-pos2.y);
         }
 
-        private (int x, int y, char direction) Move(string input, (int x, int y, char direction) startingPosition)
+        private (int x, int y, char direction) MoveAll(string input, (int x, int y, char direction) startingPosition)
         {
             return input.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
                 .Select(x => (direction: x[0], distance: int.Parse(x.Substring(1))))
-                .Aggregate(startingPosition, Move
-                );
+                .Aggregate(startingPosition, (tuple, valueTuple) =>
+                {
+                    var newPosition = Move(tuple, valueTuple);
+                    Console.WriteLine($"{tuple} {valueTuple} {newPosition}");
+                    return newPosition;
+                });
         }
 
         (int x, int y, char direction) Move((int x, int y, char direction) startingPosition,
@@ -73,10 +92,11 @@ F11";
 
             if (turn.TryGetValue(direction.direction, out var angleModifier))
             {
+                Console.WriteLine(angleModifier*direction.distance);
                 return (
                     startingPosition.x, 
                     startingPosition.y,
-                    directions.Single(x => x.Value == (direction.distance + angleModifier * direction.distance) % 360).Key);
+                    directions.Single(x => x.Value == (directions[startingPosition.direction] + angleModifier * direction.distance + 360) % 360).Key);
             }
             
 
@@ -84,13 +104,7 @@ F11";
 
         }
 
-        [Test]
-        public void Part1()
-        {
-            var startingPosition = (x:0,y:0,direction:'E');
-            var newPosition = Move(Input, startingPosition);
-            Assert.AreEqual(1137,Distance(startingPosition,newPosition));
-        }
+        
 
         [Test]
         public void Example2()
