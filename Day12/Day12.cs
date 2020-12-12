@@ -118,7 +118,7 @@ F11";
         {
             var startingPosition = new ShipWithWaypoint(new Position(0, 0), new Position(1, 10));
             var newPosition = MoveAllWithWaypoint(Input, startingPosition);
-            Assert.AreEqual(33420, Distance(startingPosition.Ship, newPosition.Ship));
+            Assert.AreEqual(22848, Distance(startingPosition.Ship, newPosition.Ship));
         }
 
         private ShipWithWaypoint MoveAllWithWaypoint(string example, ShipWithWaypoint startingPosition)
@@ -135,17 +135,19 @@ F11";
 
         private ShipWithWaypoint Move(ShipWithWaypoint current, Action action)
         {
-            ShipWithWaypoint MoveWaypoint(Position delta, ShipWithWaypoint current)
+            ShipWithWaypoint MoveWaypoint(Position delta, ShipWithWaypoint @from)
             {
-                return current with{
-                    Waypoint = new Position(current.Waypoint.Y + delta.Y, current.Waypoint.X + delta.X)
+                return @from with{
+                    Waypoint = new Position(
+                        X: @from.Waypoint.X + delta.X,
+                        Y: @from.Waypoint.Y + delta.Y)
                     };
             }
 
-            ShipWithWaypoint RotateWaypointInternal(int unit, ShipWithWaypoint current)
+            ShipWithWaypoint RotateWaypointInternal(int unit, ShipWithWaypoint @from)
             {
-                return current with {
-                    Waypoint = RotateWaypoint(unit, current.Waypoint)
+                return @from with {
+                    Waypoint = RotateWaypoint(unit, @from.Waypoint)
                     };
             }
             var actions = new Dictionary<char, Func<ShipWithWaypoint, Action, ShipWithWaypoint>>()
@@ -156,12 +158,12 @@ F11";
                 {'W', (c, a) => MoveWaypoint(new Position(0, -a.Unit),c)},
                 {'L', (c, a) => RotateWaypointInternal(a.Unit,c)},
                 {'R', (c, a) => RotateWaypointInternal(-a.Unit,c)},
-                {'F', (c,a) => MoveToWayPoint(a.Unit,c)}
+                {'F', (c,a) => MoveToWaypoint(a.Unit,c)}
             };
             return actions[action.Direction](current, action);
         }
 
-        private ShipWithWaypoint MoveToWayPoint(in int unit, ShipWithWaypoint shipWithWaypoint)
+        private ShipWithWaypoint MoveToWaypoint(in int unit, ShipWithWaypoint shipWithWaypoint)
         {
             return shipWithWaypoint with {
                 Ship = new(
