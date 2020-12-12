@@ -110,7 +110,7 @@ F11";
         {
             var startingPosition = new ShipWithWaypoint(new Position(0, 0), new Position(1, 10));
             var newPosition = MoveAllWithWaypoint(Example, startingPosition);
-            Assert.AreEqual(50338, Distance(startingPosition.Ship, newPosition.Ship));
+            Assert.AreEqual(286, Distance(startingPosition.Ship, newPosition.Ship));
         }
         
         [Test]
@@ -118,7 +118,7 @@ F11";
         {
             var startingPosition = new ShipWithWaypoint(new Position(0, 0), new Position(1, 10));
             var newPosition = MoveAllWithWaypoint(Input, startingPosition);
-            Assert.AreEqual(71436, Distance(startingPosition.Ship, newPosition.Ship));
+            Assert.AreEqual(33420, Distance(startingPosition.Ship, newPosition.Ship));
         }
 
         private ShipWithWaypoint MoveAllWithWaypoint(string example, ShipWithWaypoint startingPosition)
@@ -153,7 +153,7 @@ F11";
                 {'N', (c, a) => MoveWaypoint(new Position(a.Unit,0),c)},
                 {'S', (c, a) => MoveWaypoint(new Position(-a.Unit,0),c)},
                 {'E', (c, a) => MoveWaypoint(new Position(0, a.Unit),c)},
-                {'W', (c, a) => MoveWaypoint(new Position(0, a.Unit),c)},
+                {'W', (c, a) => MoveWaypoint(new Position(0, -a.Unit),c)},
                 {'L', (c, a) => RotateWaypointInternal(a.Unit,c)},
                 {'R', (c, a) => RotateWaypointInternal(-a.Unit,c)},
                 {'F', (c,a) => MoveToWayPoint(a.Unit,c)}
