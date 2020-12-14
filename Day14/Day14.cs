@@ -115,20 +115,27 @@ mem[42] = 100");
 
         private IEnumerable<long> Combinations(string input)
         {
-            var x = input.IndexOf('X');
+            return Combinations(input.ToCharArray());
+        }
+        private IEnumerable<long> Combinations(char[] input)
+        {
+
+            var x = Array.IndexOf(input,'X');
             if (x == -1)
             {
-                yield return Convert.ToInt64(input, 2);
+                yield return Convert.ToInt64(new string(input), 2);
                 yield break;
             }
             foreach(var candidate in new[]{'1','0'})
             {
-                var newInput = input.ToCharArray();
-                newInput[x] = candidate;
-                foreach (var combination in Combinations(new String(newInput)))
+                var oldValue = input[x];
+                input[x] = candidate;
+                foreach (var combination in Combinations(input))
                 {
                     yield return combination;
                 }
+
+                input[x] = oldValue;
             }
         }
 
