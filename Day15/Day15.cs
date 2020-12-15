@@ -86,27 +86,24 @@ namespace Day15
                 
                 yield return currentNumber;
 
-                AddToHistory(spokenNumbers,currentNumber,count);
+                AddToHistory(currentNumber,count);
 
                 lastNumber = currentNumber;
                 count++;
 
             }
-        }
-
-        private static void AddToHistory(Dictionary<int, Queue<int>> spokenNumbersDict, int currentNumber, int count)
-        {
-            if (spokenNumbersDict.TryGetValue(currentNumber, out var prev))
+            
+            void AddToHistory(int currentNumber, int turns)
             {
-                prev.Enqueue(count);
-            }
-            else
-            {
-                spokenNumbersDict[currentNumber] = new Queue<int>(new[] {count});
+                if (spokenNumbers.TryGetValue(currentNumber, out var prev))
+                {
+                    prev.Enqueue(turns);
+                }
+                else
+                {
+                    spokenNumbers[currentNumber] = new Queue<int>(new[] {turns});
+                }
             }
         }
-
-
-        
     }
 }
