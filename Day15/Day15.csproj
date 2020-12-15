@@ -10,14 +10,6 @@
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
     </ItemGroup>
 
-    <ItemGroup>
-      <None Update="input.txt">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-    </ItemGroup>
 
-    <ItemGroup>
-      <Content Include=".day15.config\day15.json" />
-    </ItemGroup>
 
 </Project>

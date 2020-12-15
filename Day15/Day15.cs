@@ -10,11 +10,6 @@ namespace Day15
 {
     public class Day15
     {
-        private readonly string Example =
-            @"";
-
-        private readonly string Input = File.ReadAllText("input.txt");
-
         [Test]
         public void Example1()
         {
@@ -56,22 +51,24 @@ namespace Day15
 
         private IEnumerable<int> Play(string input)
         {
-            var spokenNumbers = input.Split(",").Select(int.Parse).ToList();
-            var spokenNumbersDict = new Dictionary<int, Queue<int>>();
+            var inputList = input.Split(",").Select(int.Parse).ToList();
+            
+            var spokenNumbers = new Dictionary<int, Queue<int>>();
             var lastNumber =0;
             var count = 0;
-            foreach (var number in spokenNumbers)
+            
+            foreach (var number in inputList)
             {
                 yield return number;
                 lastNumber = number;
-                spokenNumbersDict[lastNumber] = new Queue<int>(new[] {count});
+                spokenNumbers[lastNumber] = new Queue<int>(new[] {count});
                 count++;
-
             }
+            
             while (true)
             {
                 int currentNumber;
-                if (spokenNumbersDict.TryGetValue(lastNumber, out var speaks))
+                if (spokenNumbers.TryGetValue(lastNumber, out var speaks))
                 {
                     if (speaks.Count == 1)
                     {
@@ -89,7 +86,7 @@ namespace Day15
                 
                 yield return currentNumber;
 
-                AddToHistory(spokenNumbersDict,currentNumber,count);
+                AddToHistory(spokenNumbers,currentNumber,count);
 
                 lastNumber = currentNumber;
                 count++;
