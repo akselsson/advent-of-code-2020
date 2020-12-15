@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -29,45 +30,86 @@ namespace Day15
             Assert.AreEqual(438,Play("3,2,1").Skip(2020-1).First());
             Assert.AreEqual(1836,Play("3,1,2").Skip(2020-1).First());
         }
+        [Test]
+        public void Example1_2()
+        {
+            CollectionAssert.AreEqual(new[]{0,3,6,0,3,3,1,0,4,0},Play("0,3,6").Take(10));
+        }
         
         [Test]
         public void Part1()
         {
             Assert.AreEqual(639,Play("11,18,0,20,1,7,16").Skip(2020-1).First());
         }
-
-        private IEnumerable<int> Play(string input)
-        {
-            var spokenNumbers = input.Split(",").Select(int.Parse).ToList();
-            foreach (var number in spokenNumbers)
-            {
-                yield return number;
-            }
-            int turn = 0;
-            while (true)
-            {
-                
-                var lastNumber = spokenNumbers.Last();
-                var previousSpeakOfNumber = spokenNumbers.LastIndexOf(lastNumber, spokenNumbers.Count-2);
-                var currentNumber = previousSpeakOfNumber == -1 ? 0 : spokenNumbers.Count - previousSpeakOfNumber - 1;
-                spokenNumbers.Add(currentNumber);
-                
-                yield return currentNumber;
-
-            }
-        }
-
         
-
         [Test]
         public void Example2()
         {
-            //Assert.AreEqual(175594,Play("0,3,6").Skip(30_000_000-1).First());
+            Assert.AreEqual(175594,Play("0,3,6").Skip(30_000_000-1).First());
         }
 
         [Test]
         public void Part2()
         {
+            Assert.AreEqual(266,Play("11,18,0,20,1,7,16").Skip(30_000_000-1).First());
         }
+
+        private IEnumerable<int> Play(string input)
+        {
+            var spokenNumbers = input.Split(",").Select(int.Parse).ToList();
+            var spokenNumbersDict = new Dictionary<int, Queue<int>>();
+            var lastNumber =0;
+            var count = 0;
+            foreach (var number in spokenNumbers)
+            {
+                yield return number;
+                lastNumber = number;
+                spokenNumbersDict[lastNumber] = new Queue<int>(new[] {count});
+                count++;
+
+            }
+            while (true)
+            {
+                int currentNumber;
+                if (spokenNumbersDict.TryGetValue(lastNumber, out var speaks))
+                {
+                    if (speaks.Count == 1)
+                    {
+                        currentNumber = 0;
+                    }
+                    else
+                    {
+                        currentNumber = count - speaks.Dequeue() - 1;
+                    }
+                }
+                else
+                {
+                    currentNumber = 0;
+                }
+                
+                yield return currentNumber;
+
+                AddToHistory(spokenNumbersDict,currentNumber,count);
+
+                lastNumber = currentNumber;
+                count++;
+
+            }
+        }
+
+        private static void AddToHistory(Dictionary<int, Queue<int>> spokenNumbersDict, int currentNumber, int count)
+        {
+            if (spokenNumbersDict.TryGetValue(currentNumber, out var prev))
+            {
+                prev.Enqueue(count);
+            }
+            else
+            {
+                spokenNumbersDict[currentNumber] = new Queue<int>(new[] {count});
+            }
+        }
+
+
+        
     }
 }
