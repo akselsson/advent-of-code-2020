@@ -1,5 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -9,6 +12,8 @@ namespace Day16
 {
     public class Day16
     {
+        
+
         private readonly string Example =
             @"class: 1-3 or 5-7
 row: 6-11 or 33-44
@@ -49,8 +54,7 @@ nearby tickets:
         private IEnumerable<int> NearbyScanningErrors(string input)
         {
             var note = Note.Parse(input);
-            return note.NearbyTickets.SelectMany(x =>
-                x.Where(y => !note.Rules.Any(rule => rule.Conditions.Any(c => c.Min <= y && c.Max >= y))));
+            return note.GetScanningErrors();
         }
 
         record Note(
@@ -81,6 +85,55 @@ nearby tickets:
 
                 return new Note(Rules: rules, Ticket: ticket, NearbyTickets: nearbyTickets);
             }
+
+            public IEnumerable<(int value,string field)> GetTicket()
+            {
+                var tickets = NearbyTickets.Where(x => x.All(y => Rules.Any(rule => rule.Conditions.Any(c => c.Min <= y && c.Max >= y)))).ToArray();
+                Console.WriteLine($"Candidates: {string.Join(Environment.NewLine,tickets.Select(c=>string.Join(",",c)))}");
+                var combinations = GetRuleCombinations(Rules,0);
+                foreach (var candidate in combinations)
+                {
+                    Console.WriteLine($"Testing {string.Join(",",candidate)}");
+                    if(tickets.All(ticket => candidate.All(rule => rule.Conditions.Any(c=> Match(c,ticket[rule.Index])))))
+                    {
+                        return candidate.Select(x => (Ticket[x.Index], x.Name));
+                    }
+                }
+
+                throw new Exception("No combinations found");
+            }
+
+            public IEnumerable<(string Name, (int Min, int Max)[] Conditions, int Index)[]> GetRuleCombinations(
+                (string Name, (int Min, int Max)[] Conditions)[] rules, int index)
+            {
+                if (rules.Length == 0)
+                {
+                    yield return Array.Empty<(string, (int, int)[], int)>();
+                }
+                foreach (var rule in rules)
+                {
+                    foreach (var combo in GetRuleCombinations(rules.Where(x=>x.Name != rule.Name).ToArray(),index+1))
+                    {
+                        yield return new[]
+                        {
+                            (rule.Name, rule.Conditions, index)
+
+                        }.Concat(combo).ToArray();
+                    }
+                }
+            }
+
+            public IEnumerable<int> GetScanningErrors()
+            {
+                return NearbyTickets.SelectMany(x =>
+                    x.Where(y => !Rules.Any(rule => rule.Conditions.Any(c=>Match(c,y)))));
+            }
+            static bool Match((int Min, int Max) c, int y)
+            {
+                var match = c.Min <= y && c.Max >= y;
+                Console.WriteLine($"Match {match} {c} {y}");
+                return match;
+            }
         }
 
         [Test]
@@ -90,14 +143,31 @@ nearby tickets:
             Assert.AreEqual(29878, nearbyScanningErrors.Sum());
         }
 
+        private const string Example_2 = @"class: 0-1 or 4-19
+row: 0-5 or 8-19
+seat: 0-13 or 16-19
+
+your ticket:
+11,12,13
+
+nearby tickets:
+3,9,18
+15,1,5
+5,14,9";
         [Test]
         public void Example2()
         {
+            var note = Note.Parse(Example_2);
+            CollectionAssert.AreEquivalent(new[]{(11,"row"),(12,"class"),(13,"seat")},note.GetTicket());
         }
+
 
         [Test]
         public void Part2()
         {
+            var note = Note.Parse(Input);
+            var ticket = note.GetTicket();
+            Assert.AreEqual(0,ticket.Where(x=>x.field.StartsWith("departure")).Aggregate(1,(agg,curr) => agg*curr.value));
         }
     }
 }
