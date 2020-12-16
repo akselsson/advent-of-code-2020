@@ -79,7 +79,7 @@ nearby tickets:
 
                 var ticket = sections[1].Split(Environment.NewLine)[1].Split(",").Select(int.Parse).ToArray();
 
-                var nearbyTickets = sections[2].Split(Environment.NewLine).Skip(1).Select(line =>
+                var nearbyTickets = sections[2].Split(Environment.NewLine,StringSplitOptions.RemoveEmptyEntries).Skip(1).Select(line =>
                         line.Split(",", StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray())
                     .ToArray();
 
@@ -88,51 +88,49 @@ nearby tickets:
 
             public IEnumerable<(int value,string field)> GetTicket()
             {
-                var tickets = NearbyTickets.Where(x => x.All(y => Rules.Any(rule => rule.Conditions.Any(c => c.Min <= y && c.Max >= y)))).ToArray();
+                var tickets = NearbyTickets.Where(x => x.All(y => Rules.Any(rule => Match(rule.Conditions, y)))).ToArray();
                 Console.WriteLine($"Candidates: {string.Join(Environment.NewLine,tickets.Select(c=>string.Join(",",c)))}");
-                var combinations = GetRuleCombinations(Rules,0);
-                foreach (var candidate in combinations)
-                {
-                    Console.WriteLine($"Testing {string.Join(",",candidate)}");
-                    if(tickets.All(ticket => candidate.All(rule => rule.Conditions.Any(c=> Match(c,ticket[rule.Index])))))
-                    {
-                        return candidate.Select(x => (Ticket[x.Index], x.Name));
-                    }
-                }
-
-                throw new Exception("No combinations found");
+                var combinations = GetRuleCombination(Rules,tickets,0);
+                return combinations.Select(x => (Ticket[x.Index], x.Name));
             }
 
-            public IEnumerable<(string Name, (int Min, int Max)[] Conditions, int Index)[]> GetRuleCombinations(
-                (string Name, (int Min, int Max)[] Conditions)[] rules, int index)
+            public (string Name, (int Min, int Max)[] Conditions, int Index)[] GetRuleCombination(
+                (string Name, (int Min, int Max)[] Conditions)[] rules, int[][] tickets, int index)
             {
                 if (rules.Length == 0)
                 {
-                    yield return Array.Empty<(string, (int, int)[], int)>();
+                    return Array.Empty<(string, (int, int)[], int)>();
                 }
                 foreach (var rule in rules)
                 {
-                    foreach (var combo in GetRuleCombinations(rules.Where(x=>x.Name != rule.Name).ToArray(),index+1))
+                    if (!tickets.Select(x => x[index]).All(ticket => Match(rule.Conditions, ticket)))
                     {
-                        yield return new[]
-                        {
-                            (rule.Name, rule.Conditions, index)
+                        continue;
+                    }
 
-                        }.Concat(combo).ToArray();
+                    var combo = GetRuleCombination(
+                        rules.Where(x => x.Name != rule.Name).ToArray(),
+                        tickets,
+                        index + 1);
+                    if (combo != null)
+                    {
+                        return new[] {(rule.Name, rule.Conditions, index)}.Concat(combo).ToArray();
                     }
                 }
+                return null;
+            }
+
+            
+            
+            private static bool Match((int Min, int Max)[] conditions, int ticket)
+            {
+                return conditions.Any(c => c.Min <= ticket && c.Max >= ticket);
             }
 
             public IEnumerable<int> GetScanningErrors()
             {
                 return NearbyTickets.SelectMany(x =>
-                    x.Where(y => !Rules.Any(rule => rule.Conditions.Any(c=>Match(c,y)))));
-            }
-            static bool Match((int Min, int Max) c, int y)
-            {
-                var match = c.Min <= y && c.Max >= y;
-                Console.WriteLine($"Match {match} {c} {y}");
-                return match;
+                    x.Where(y => !Rules.Any(rule => Match(rule.Conditions,y))));
             }
         }
 
