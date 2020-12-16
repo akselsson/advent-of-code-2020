@@ -66,7 +66,7 @@ nearby tickets:
             {
                 var sections = input.Split(Environment.NewLine + Environment.NewLine,
                     StringSplitOptions.RemoveEmptyEntries);
-                Regex rule = new Regex(@"(?<field>\w+): (?<min1>\d+)-(?<max1>\d+) or (?<min2>\d+)-(?<max2>\d+)");
+                Regex rule = new Regex(@"(?<field>.*): (?<min1>\d+)-(?<max1>\d+) or (?<min2>\d+)-(?<max2>\d+)");
                 var rules = sections[0].Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
                     .Select(line => rule.Match(line))
                     .Select(match => (
@@ -89,9 +89,8 @@ nearby tickets:
             public IEnumerable<(int value,string field)> GetTicket()
             {
                 var tickets = NearbyTickets.Where(x => x.All(y => Rules.Any(rule => Match(rule.Conditions, y)))).ToArray();
-                Console.WriteLine($"Candidates: {string.Join(Environment.NewLine,tickets.Select(c=>string.Join(",",c)))}");
-                var combination = GetRuleCombination(Rules,tickets,0);
-                return combination.Select((x,i) => (Ticket[i], x.Name));
+                //Console.WriteLine($"Candidates: {Environment.NewLine}{string.Join(Environment.NewLine,tickets.Select(c=>string.Join(",",c)))}");
+                return GetRuleCombination(Rules,tickets,0).Select((x,i) => (Ticket[i], x.Name));
             }
 
             public (string Name, (int Min, int Max)[] Conditions)[] GetRuleCombination(
@@ -101,9 +100,30 @@ nearby tickets:
                 {
                     return Array.Empty<(string Name, (int Min, int Max)[] Conditions)>();
                 }
+
+                if (index == 0 )
+                {
+                    return rules.AsParallel().Select(rule =>
+                    {
+                        if (!AllTicketsMatch(tickets, index, rule)) 
+                            return null;
+
+                        var combo = GetRuleCombination(
+                            rules.Where(x => x.Name != rule.Name).ToArray(),
+                            tickets,
+                            index + 1);
+                        if (combo != null)
+                        {
+                            return new[] {(rule.Name, rule.Conditions)}.Concat(combo).ToArray();
+                        }
+
+                        return null;
+                    }).First(x=>x!=null);
+                }
+
                 foreach (var rule in rules)
                 {
-                    if (!tickets.Select(x => x[index]).All(ticket => Match(rule.Conditions, ticket)))
+                    if (!AllTicketsMatch(tickets, index, rule))
                     {
                         continue;
                     }
@@ -120,11 +140,32 @@ nearby tickets:
                 return null;
             }
 
-            
-            
+            private static bool AllTicketsMatch(int[][] tickets, int index, (string Name, (int Min, int Max)[] Conditions) rule)
+            {
+                for (int i = 0; i < tickets.Length; i++)
+                {
+                    if (!Match(rule.Conditions, tickets[i][index]))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+
             private static bool Match((int Min, int Max)[] conditions, int ticket)
             {
-                return conditions.Any(c => c.Min <= ticket && c.Max >= ticket);
+                for (var index = 0; index < conditions.Length; index++)
+                {
+                    var condition = conditions[index];
+                    if (condition.Min <= ticket && condition.Max >= ticket)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
 
             public IEnumerable<int> GetScanningErrors()
@@ -141,7 +182,7 @@ nearby tickets:
             Assert.AreEqual(29878, nearbyScanningErrors.Sum());
         }
 
-        private const string Example_2 = @"class: 0-1 or 4-19
+        private const string Example_2 = @"departure class: 0-1 or 4-19
 row: 0-5 or 8-19
 seat: 0-13 or 16-19
 
@@ -149,6 +190,7 @@ your ticket:
 11,12,13
 
 nearby tickets:
+99,100,220
 3,9,18
 15,1,5
 5,14,9";
@@ -156,7 +198,10 @@ nearby tickets:
         public void Example2()
         {
             var note = Note.Parse(Example_2);
-            CollectionAssert.AreEquivalent(new[]{(11,"row"),(12,"class"),(13,"seat")},note.GetTicket());
+            var ticket = note.GetTicket();
+            TestContext.WriteLine($"{string.Join(Environment.NewLine,ticket)}");
+            CollectionAssert.AreEquivalent(new[]{(11,"row"),(12,"departure class"),(13,"seat")},ticket);
+            Assert.AreEqual(1716,ticket.Aggregate(1,(agg,curr) => agg*curr.value));
         }
 
 
@@ -164,8 +209,38 @@ nearby tickets:
         public void Part2()
         {
             var note = Note.Parse(Input);
-            var ticket = note.GetTicket();
-            Assert.AreEqual(0,ticket.Where(x=>x.field.StartsWith("departure")).Aggregate(1,(agg,curr) => agg*curr.value));
+            var ticket = note.GetTicket().ToArray();
+            TestContext.WriteLine($"{string.Join(Environment.NewLine,ticket)}");
+            Assert.AreEqual(855438643439,ticket.Where(x=>x.field.StartsWith("departure")).Aggregate(1L,(agg,curr) => agg*curr.value));
+        }
+
+        [Test]
+        public void Part2_Answer()
+        {
+            var results = new[]
+            {
+                (53, "departure track"),
+                (67, "row"),
+                (73, "arrival platform"),
+                (109, "train"),
+                (113, "seat"),
+                (107, "departure platform"),
+                (137, "zone"),
+                (131, "route"),
+                (71, "class"),
+                (59, "arrival station"),
+                (101, "departure time"),
+                (179, "price"),
+                (181, "duration"),
+                (61, "wagon"),
+                (97, "departure date"),
+                (173, "departure location"),
+                (103, "arrival location"),
+                (89, "departure station"),
+                (127, "arrival track"),
+                (139, "type"),
+            };
+            Assert.AreEqual(0L,results.Where(x=>x.Item2.StartsWith("departure")).Aggregate(1L,(agg,curr) => agg*curr.Item1));
         }
     }
 }
