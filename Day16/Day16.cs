@@ -90,16 +90,16 @@ nearby tickets:
             {
                 var tickets = NearbyTickets.Where(x => x.All(y => Rules.Any(rule => Match(rule.Conditions, y)))).ToArray();
                 Console.WriteLine($"Candidates: {string.Join(Environment.NewLine,tickets.Select(c=>string.Join(",",c)))}");
-                var combinations = GetRuleCombination(Rules,tickets,0);
-                return combinations.Select(x => (Ticket[x.Index], x.Name));
+                var combination = GetRuleCombination(Rules,tickets,0);
+                return combination.Select((x,i) => (Ticket[i], x.Name));
             }
 
-            public (string Name, (int Min, int Max)[] Conditions, int Index)[] GetRuleCombination(
+            public (string Name, (int Min, int Max)[] Conditions)[] GetRuleCombination(
                 (string Name, (int Min, int Max)[] Conditions)[] rules, int[][] tickets, int index)
             {
                 if (rules.Length == 0)
                 {
-                    return Array.Empty<(string, (int, int)[], int)>();
+                    return Array.Empty<(string Name, (int Min, int Max)[] Conditions)>();
                 }
                 foreach (var rule in rules)
                 {
@@ -114,7 +114,7 @@ nearby tickets:
                         index + 1);
                     if (combo != null)
                     {
-                        return new[] {(rule.Name, rule.Conditions, index)}.Concat(combo).ToArray();
+                        return new[] {(rule.Name, rule.Conditions)}.Concat(combo).ToArray();
                     }
                 }
                 return null;
