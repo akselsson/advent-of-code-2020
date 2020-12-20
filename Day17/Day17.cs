@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using NUnit.Framework;
 
 namespace Day17
@@ -25,6 +27,9 @@ namespace Day17
         [Test]
         public void Part1()
         {
+            var game = GameOfCubes.Parse(Input);
+            game.Play(6);
+            Assert.AreEqual(207, game.ActiveCount);
         }
 
         [Test]
@@ -38,20 +43,27 @@ namespace Day17
         }
     }
 
+    public record Coordinate(int X, int Y, int Z);
+
     public class GameOfCubes
     {
-        private bool[][][] _cube;
+        private HashSet<Coordinate> _activeCells;
 
-        private GameOfCubes(bool[][][] cube)
+        public GameOfCubes(HashSet<Coordinate> activeCells)
         {
-            _cube = cube;
+            _activeCells = activeCells;
         }
+
 
         public static GameOfCubes Parse(string input)
         {
-            var z0 = input.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-                .Select(line => line.Select(chr => chr == '#').ToArray()).ToArray();
-            return new GameOfCubes(new bool[][][] {z0});
+            var activeCells = input.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                .SelectMany((line, y) => 
+                    line.Select((chr, x) => (chr == '#', x))
+                        .Where(c => c.Item1)
+                        .Select(c => new Coordinate(y, c.x, 0))
+                    ).ToHashSet();
+            return new GameOfCubes(activeCells);
         }
 
         public void Play(int iterations)
@@ -62,7 +74,7 @@ namespace Day17
             
             for (int i = 0; i < iterations; i++)
             {
-                Console.WriteLine(new string('-',_cube.Length));
+                Console.WriteLine(new string('-',_activeCells.Count));
                 Console.WriteLine();
                 
                 Play();
@@ -75,71 +87,70 @@ namespace Day17
         
         private void Play()
         {
-            var length = _cube.Length;
-
-            var newLength = length + 2;
-            var newCube = new bool[_cube.Length + 2][][];
-
-            for (int zNew = -1; zNew < length + 1; zNew++)
+            IDictionary<Coordinate, (int count,bool isActive)> neighBors = _activeCells.ToDictionary(x => x, _ => (0,true));
+            foreach (var cell in _activeCells)
             {
-                var plane = newCube[zNew + 1] = new bool[newLength][];
-                for (int yNew = -1; yNew < length + 1; yNew++)
+                for (int x = cell.X-1; x < cell.X+2; x++)
                 {
-                    var line = plane[yNew + 1] = new bool[newLength];
-                    for (int xNew = -1; xNew < length + 1; xNew++)
+                    for (int y = cell.Y-1; y < cell.Y+2; y++)
                     {
-                        line[yNew + 1] = GetNewState(zNew, yNew, xNew);
-                    }
-                }
-            }
-
-            _cube = newCube;
-
-        }
-
-        private bool GetNewState(in int zNew, in int yNew, in int xNew)
-        {
-            int count = 0;
-            var currentState = zNew >= 0 &&
-                               yNew >= 0 &&
-                               xNew >= 0 &&
-                               zNew < _cube.Length &&
-                               xNew < _cube.Length &&
-                               yNew < _cube.Length &&
-                               _cube[zNew][yNew][xNew];
-            
-
-            for (int z = Math.Max(0, zNew-1); z <= Math.Min(_cube.Length-1, zNew+1); z++)
-            {
-                for (int y = Math.Max(0, yNew-1); y <= Math.Min(_cube[z].Length-1, yNew+1); y++)
-                {
-                    for (int x = Math.Max(0, xNew-1); x <= Math.Min(_cube[z][y].Length-1, xNew+1); x++)
-                    {
-                        if (_cube[z][y][x] && z != zNew && y != yNew && x != xNew)
+                        for (int z = cell.Z-1; z < cell.Z+2; z++)
                         {
-                            count++;
+                            var coordinate = new Coordinate(x, y, z);
+                            if (coordinate == cell)
+                            {
+                                continue;
+                            }
+                            neighBors[coordinate] = 
+                                neighBors.TryGetValue(coordinate, out var state) ? 
+                                    (state.count + 1,state.isActive) : 
+                                    (1,false);
                         }
                     }
                 }
             }
 
-            Console.WriteLine($"{zNew} {yNew} {xNew} {currentState} {count}");
+            _activeCells = neighBors
+                .Where(x => x.Value.isActive ? (x.Value.count == 2 || x.Value.count == 3) : x.Value.count == 3)
+                .Select(x => x.Key)
+                .ToHashSet();
 
-            return currentState ? count == 2 || count == 3 : count == 3;
+
         }
 
-        public int ActiveCount => _cube.Sum(plane => plane.Sum(line => line.Count(pos => pos)));
+        
+
+        public int ActiveCount => _activeCells.Count;
 
         public override string ToString()
         {
-            return string.Join(Environment.NewLine + Environment.NewLine,
-                _cube.Select(
-                    plane => String.Join(Environment.NewLine, plane.Select(
-                        line => new String(line.Select(
-                            x => x ? '#' : '.').ToArray()))
-                    )
-                )
-            );
+            var max = _activeCells.Aggregate(
+                new Coordinate(0, 0, 0),
+                (curr, agg) =>
+                    new Coordinate(Math.Max(curr.X, agg.X), Math.Max(curr.Y, agg.Y), Math.Max(curr.Z, agg.Z)));
+            var min = _activeCells.Aggregate(
+                max,
+                (curr, agg) =>
+                    new Coordinate(Math.Min(curr.X, agg.X), Math.Min(curr.Y, agg.Y), Math.Min(curr.Z, agg.Z)));
+            StringBuilder sb = new StringBuilder();
+            for (int z = min.Z; z <= max.Z; z++)
+            {
+                sb.AppendLine($"z={z}");
+                for (int x = min.X; x <= max.X; x++)
+                {
+                    for (int y = min.Y; y <= max.Y; y++)
+                    {
+                        sb.Append(_activeCells.Contains(new Coordinate(x, y, z)) ? '#' : '.');
+                    }
+
+                    sb.AppendLine();
+                }
+
+                sb.AppendLine();
+            }
+
+            return sb.ToString();
+
         }
     }
 }
