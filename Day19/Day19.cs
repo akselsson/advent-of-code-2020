@@ -44,7 +44,7 @@ b", 1)]
         [Test]
         public void Part1()
         {
-            Assert.AreEqual(0,CountMatchingRules(Input).Length);
+            Assert.AreEqual(182,CountMatchingRules(Input).Length);
         }
 
         [Test]
@@ -64,7 +64,8 @@ b", 1)]
             var lines = example.Split(Environment.NewLine);
             var grammar = new Grammar(lines
                 .TakeWhile(IsRule)
-                .Select(ParseLine));
+                .Select(ParseLine)
+                .ToArray());
 
             var messages = lines.SkipWhile(x => IsRule(x) || string.IsNullOrEmpty(x)).ToArray();
 
@@ -74,34 +75,41 @@ b", 1)]
         private Rule ParseLine(string line)
         {
             Console.WriteLine("Line: " + line);
-            var x = line.Substring(line.IndexOf(':') + 2);
-            Console.WriteLine($"\"{x}\"");
-            if (x.StartsWith('"'))
+            var parts = line.Split(':', StringSplitOptions.RemoveEmptyEntries);
+            var index = int.Parse(parts[0]);
+            var body = parts[1].Trim();
+            Console.WriteLine($"\"{body}\"");
+            if (body.StartsWith('"'))
             {
-                return new StringRule(x.Split("\"", StringSplitOptions.RemoveEmptyEntries).First());
+                return new StringRule(index,body.Split("\"", StringSplitOptions.RemoveEmptyEntries).First());
             }
 
-            return new MatchAnyRule(x.Split(" | ",StringSplitOptions.RemoveEmptyEntries).Select(y =>
-                new MatchRuleIndex(y.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse))));
+            return new MatchAnyRule(index,body.Split(" | ",StringSplitOptions.RemoveEmptyEntries).Select(y =>
+                new MatchRuleIndex(index,y.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse))));
         }
         
     }
 
     abstract class Rule
     {
-        public abstract string[] Matches(string message, Rule[] rules);
+        public int Index { get; private set; }
+        protected Rule(int index)
+        {
+            Index = index;
+        }
+        public abstract string[] Matches(string message, IDictionary<int, Rule> rules);
     }
 
     class StringRule : Rule
     {
         private readonly string _s;
 
-        public StringRule(string s)
+        public StringRule(int index,string s):base(index)
         {
             _s = s;
         }
 
-        public override string[] Matches(string message, Rule[] rules)
+        public override string[] Matches(string message, IDictionary<int, Rule> rules)
         {
 
             return message.StartsWith(_s) ? new[] {message.Substring(1)} : new string[0];
@@ -112,12 +120,12 @@ b", 1)]
     {
         private readonly int[] _indexes;
 
-        public MatchRuleIndex(IEnumerable<int> indexes)
+        public MatchRuleIndex(int index, IEnumerable<int> indexes) : base(index)
         {
             _indexes = indexes.ToArray();
         }
 
-        public override string[] Matches(string message, Rule[] rules)
+        public override string[] Matches(string message, IDictionary<int, Rule> rules)
         {
             var result = _indexes.Aggregate(
                 (IEnumerable<string>)new[]{message},
@@ -130,12 +138,12 @@ b", 1)]
     {
         private readonly IEnumerable<Rule> _rules;
 
-        public MatchAnyRule(IEnumerable<Rule> rules)
+        public MatchAnyRule(int index,IEnumerable<Rule> rules) : base(index)
         {
             _rules = rules.ToArray();
         }
 
-        public override string[] Matches(string message, Rule[] rules)
+        public override string[] Matches(string message, IDictionary<int, Rule> rules)
         {
             return _rules.SelectMany(x => x.Matches(message, rules)).ToArray();
         }
@@ -143,11 +151,11 @@ b", 1)]
 
     class Grammar
     {
-        private readonly Rule[] _rules;
+        private readonly IDictionary<int,Rule> _rules;
 
         public Grammar(IEnumerable<Rule> rules)
         {
-            _rules = rules.ToArray();
+            _rules = rules.ToDictionary(x=>x.Index,x=>x);
         }
 
         public bool Matches(string message)
