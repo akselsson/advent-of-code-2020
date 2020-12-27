@@ -24,116 +24,27 @@ aaaabbb";
 
         private readonly string Input = File.ReadAllText("input.txt");
 
-        [TestCase(Example,2)]
+        [TestCase(Example, 2)]
         [TestCase(@"0: ""a""
 
 a
-b",1)]
+b
+aa", 1)]
         [TestCase(@"0: 1
 1: ""a""
 
 a
-b",1)]
+b", 1)]
         public void Example1(string input, int expected)
         {
-            Assert.AreEqual(expected,CountMatchingRules(input));
-        }
-
-        private int CountMatchingRules(string example)
-        {
-            bool IsRule(string x) => x.Contains(':');
-
-            var lines = example.Split(Environment.NewLine);
-            var grammar = new Grammar(lines
-                .TakeWhile(IsRule)
-                .Select(ParseLine));
-
-            var messages = lines.SkipWhile(x => IsRule(x) || string.IsNullOrEmpty(x));
-
-            return messages.Count(x => grammar.Matches(x));
-
-        }
-
-        private (int position,Rule r) ParseLine(string line, int position)
-        {
-            Console.WriteLine("Line: " + line);
-            var rules = line.Substring(line.IndexOf(':') + 1)
-                .Split(' ',StringSplitOptions.RemoveEmptyEntries)
-                .Select<string,Rule>(x =>
-                {
-                    Console.WriteLine($"\"{x}\"");
-                    if (x.StartsWith('"'))
-                    {
-                        return new StringRule(x.Split("\"", StringSplitOptions.RemoveEmptyEntries).First());
-                    }
-
-                    return new MatchOtherRules(x.Split(' ').Select(int.Parse));
-
-                    return null;
-                });
-            return (position,rules.First());
-        }
-
-        abstract class Rule
-        {
-            public abstract (bool match, string rest) Matches(string message, Rule[] rules);
-
-        }
-
-        class StringRule : Rule
-        {
-            private readonly string _s;
-
-            public StringRule(string s)
-            {
-                _s = s;
-            }
-
-            public override (bool match, string rest) Matches(string message, Rule[] rules)
-            {
-                return message.StartsWith(_s) ? 
-                    (true, message.Substring(1)) : 
-                    (false, message);
-            }
+            var matches = CountMatchingRules(input);
+            Assert.AreEqual(expected, matches.Count(),string.Join(Environment.NewLine,matches));
         }
         
-        class MatchOtherRules : Rule
-        {
-            private readonly int[] _indexes;
-
-            public MatchOtherRules(IEnumerable<int> indexes)
-            {
-                _indexes = indexes.ToArray();
-            }
-
-            public override (bool match, string rest) Matches(string message, Rule[] rules)
-            {
-                return _indexes.Aggregate(
-                    (match: true, rest: message),
-                    (agg, curr) => agg.match ? rules[curr].Matches(agg.rest, rules) : agg);
-
-            }
-        }
-        
-        class Grammar
-        {
-            private readonly Rule[] _rules;
-
-            public Grammar(IEnumerable<(int position, Rule r)> rules)
-            {
-                _rules = rules.Select(x=>x.r).ToArray();
-            }
-
-            public bool Matches(string message)
-            {
-                    Console.WriteLine($"{message} {String.Join(",", _rules.Select(x=>x?.ToString()))}");
-                    return _rules[0].Matches(message, _rules).match;
-            }
-        }
-
         [Test]
         public void Part1()
         {
+            Assert.AreEqual(0,CountMatchingRules(Input).Length);
         }
 
         [Test]
@@ -144,6 +55,106 @@ b",1)]
         [Test]
         public void Part2()
         {
+        }
+
+        private string[] CountMatchingRules(string example)
+        {
+            bool IsRule(string x) => x.Contains(':');
+
+            var lines = example.Split(Environment.NewLine);
+            var grammar = new Grammar(lines
+                .TakeWhile(IsRule)
+                .Select(ParseLine));
+
+            var messages = lines.SkipWhile(x => IsRule(x) || string.IsNullOrEmpty(x)).ToArray();
+
+            return messages.Where(x => grammar.Matches(x)).ToArray();
+        }
+
+        private Rule ParseLine(string line)
+        {
+            Console.WriteLine("Line: " + line);
+            var x = line.Substring(line.IndexOf(':') + 2);
+            Console.WriteLine($"\"{x}\"");
+            if (x.StartsWith('"'))
+            {
+                return new StringRule(x.Split("\"", StringSplitOptions.RemoveEmptyEntries).First());
+            }
+
+            return new MatchAnyRule(x.Split(" | ",StringSplitOptions.RemoveEmptyEntries).Select(y =>
+                new MatchRuleIndex(y.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse))));
+        }
+        
+    }
+
+    abstract class Rule
+    {
+        public abstract string[] Matches(string message, Rule[] rules);
+    }
+
+    class StringRule : Rule
+    {
+        private readonly string _s;
+
+        public StringRule(string s)
+        {
+            _s = s;
+        }
+
+        public override string[] Matches(string message, Rule[] rules)
+        {
+
+            return message.StartsWith(_s) ? new[] {message.Substring(1)} : new string[0];
+        }
+    }
+
+    class MatchRuleIndex : Rule
+    {
+        private readonly int[] _indexes;
+
+        public MatchRuleIndex(IEnumerable<int> indexes)
+        {
+            _indexes = indexes.ToArray();
+        }
+
+        public override string[] Matches(string message, Rule[] rules)
+        {
+            var result = _indexes.Aggregate(
+                (IEnumerable<string>)new[]{message},
+                (agg, curr) => agg.SelectMany(a=>rules[curr].Matches(a,rules)));
+            return result.ToArray();
+        }
+    }
+    
+    class MatchAnyRule : Rule
+    {
+        private readonly IEnumerable<Rule> _rules;
+
+        public MatchAnyRule(IEnumerable<Rule> rules)
+        {
+            _rules = rules.ToArray();
+        }
+
+        public override string[] Matches(string message, Rule[] rules)
+        {
+            return _rules.SelectMany(x => x.Matches(message, rules)).ToArray();
+        }
+    }
+
+    class Grammar
+    {
+        private readonly Rule[] _rules;
+
+        public Grammar(IEnumerable<Rule> rules)
+        {
+            _rules = rules.ToArray();
+        }
+
+        public bool Matches(string message)
+        {
+            //Console.WriteLine($"{message} {String.Join(",", _rules.Select(x => x?.ToString()))}");
+            var matches = _rules[0].Matches(message, _rules);
+            return matches.Any(x=>x.Length == 0);
         }
     }
 
