@@ -13,12 +13,16 @@ namespace Day20
     {
         private readonly string Input = File.ReadAllText("input.txt");
 
+        private readonly string MonsterMask = @"                  # 
+#    ##    ##    ###
+ #  #  #  #  #  #   ";
+
         [Test]
         public void Example1()
         {
             var tiles = Example.Split(Environment.NewLine + Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-                .Select(ParseTile);
-            var image = new Image(tiles.ToArray()).Assemble();
+                .Select(Tile.ParseTile);
+            var image = Image.Create(tiles.ToArray()).VariantIds;
             Assert.AreEqual(1951, image[0, 0]);
             CollectionAssert.AreEqual(new int[3, 3]
             {
@@ -33,14 +37,19 @@ namespace Day20
         public void Part1()
         {
             var tiles = Input.Split(Environment.NewLine + Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-                .Select(ParseTile);
-            var image = new Image(tiles.ToArray()).Assemble();
-            Assert.AreEqual(54755174472007, CalculatePart1Answer(image));
+                .Select(Tile.ParseTile);
+            var image = Image.Create(tiles.ToArray());
+            Assert.AreEqual(54755174472007, CalculatePart1Answer(image.VariantIds));
         }
 
         [Test]
         public void Example2()
         {
+            var tiles = Example
+                .Split(Environment.NewLine + Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                .Select(Tile.ParseTile);
+            var image = Image.Create(tiles.ToArray());
+            Assert.AreEqual(273,image.CountRoughness(MonsterMask));
         }
 
         [Test]
@@ -58,48 +67,53 @@ namespace Day20
         class Image
         {
             private readonly Tile[] _tiles;
+            private readonly TileVariant[,] _assembledTiles;
 
-            public Image(Tile[] tiles)
+            public Image(Tile[] tiles, TileVariant[,] assembledTiles)
             {
                 _tiles = tiles;
+                _assembledTiles = assembledTiles;
             }
 
-            public long[,] Assemble()
+            public static Image Create(Tile[] tiles)
             {
-                foreach (var variant in _tiles.SelectMany(tile => tile.Variants))
+                var variants = tiles.Select(x => x.Variants);
+                foreach (var variant in variants.SelectMany(x=>x))
                 {
-                    variant.FillPossibleMatches(_tiles);
+                    variant.FillPossibleMatches(tiles);
                 }
 
-                var length = (int) Math.Sqrt(_tiles.Length);
-                return _tiles
+                var length = (int) Math.Sqrt(tiles.Length);
+                return new Image(tiles, tiles
                     .SelectMany(tile => tile.Variants)
                     .AsParallel()
-                    .SelectMany(variant => variant.TryFit(new TileVariant[length, length], _tiles.ToHashSet(), 0, 0))
-                    .Select(image =>
-                    {
-                        var returnValue = new long[length, length];
-                        for (int i = 0; i < image.GetLength(0); i++)
-                        {
-                            for (int j = 0; j < image.GetLength(1); j++)
-                            {
-                                returnValue[i, j] = image[i, j].Tile.Id;
-                            }
-                        }
+                    .SelectMany(variant => variant.TryFit(new TileVariant[length, length], tiles.ToHashSet(), 0, 0))
+                    .First());
+            }
 
-                        return returnValue;
-                    }).First();
+            public long[,] VariantIds
+            {
+                get
+                {
+                    var returnValue = new long[_assembledTiles.GetLength(0), _assembledTiles.GetLength(1)];
+                    for (int i = 0; i < _assembledTiles.GetLength(0); i++)
+                    {
+                        for (int j = 0; j < _assembledTiles.GetLength(1); j++)
+                        {
+                            returnValue[i, j] = _assembledTiles[i, j].Tile.Id;
+                        }
+                    }
+
+                    return returnValue;
+                }
+            }
+
+            public int CountRoughness(string monsterMask)
+            {
+                return 0;
             }
         }
 
-
-        private Tile ParseTile(string tile)
-        {
-            Regex tileNo = new Regex("Tile (?<tile>\\d+):");
-            var index = int.Parse(tileNo.Match(tile).Groups["tile"].Value);
-            return new Tile(index,
-                tile.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Skip(1).ToArray());
-        }
 
         class TileVariant
         {
@@ -258,6 +272,14 @@ namespace Day20
                     }
                 }
             }
+
+            public static Tile ParseTile(string tile)
+            {
+                Regex tileNo = new Regex("Tile (?<tile>\\d+):");
+                var index = int.Parse(tileNo.Match(tile).Groups["tile"].Value);
+                return new Tile(index,
+                    tile.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Skip(1).ToArray());
+            }
         }
 
         [Test]
@@ -287,8 +309,8 @@ namespace Day20
                 "#..",
                 "..."
             });
-            var image = new Image(new[] {first, second, third, fourth});
-            CollectionAssert.AreEquivalent(new[,] {{1, 2}, {3, 4}}, image.Assemble());
+            var image = Image.Create(new[] {first, second, third, fourth});
+            CollectionAssert.AreEquivalent(new[,] {{1, 2}, {3, 4}}, image.VariantIds);
         }
 
         [Test]
@@ -318,8 +340,8 @@ namespace Day20
                 "#..",
                 "..."
             });
-            var image = new Image(new[] {first, second, third, fourth});
-            CollectionAssert.AreEquivalent(new[,] {{1, 2}, {3, 4}}, image.Assemble());
+            var image = Image.Create(new[] {first, second, third, fourth});
+            CollectionAssert.AreEquivalent(new[,] {{1, 2}, {3, 4}}, image.VariantIds);
         }
 
         [Test]
