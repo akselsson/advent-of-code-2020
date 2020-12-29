@@ -13,9 +13,9 @@ namespace Day20
     {
         private readonly string Input = File.ReadAllText("input.txt");
 
-        private readonly string MonsterMask = @"                  # 
+        private readonly string[] MonsterMask = @"                  # 
 #    ##    ##    ###
- #  #  #  #  #  #   ";
+ #  #  #  #  #  #   ".Split((Environment.NewLine));
 
         [Test]
         public void Example1()
@@ -49,7 +49,7 @@ namespace Day20
                 .Split(Environment.NewLine + Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
                 .Select(Tile.ParseTile);
             var image = Image.Create(tiles.ToArray());
-            Assert.AreEqual(273,image.CountRoughness(MonsterMask));
+            Assert.AreEqual(273, image.CountRoughness(MonsterMask));
         }
 
         [Test]
@@ -66,25 +66,23 @@ namespace Day20
 
         class Image
         {
-            private readonly Tile[] _tiles;
             private readonly TileVariant[,] _assembledTiles;
 
-            public Image(Tile[] tiles, TileVariant[,] assembledTiles)
+            private Image(TileVariant[,] assembledTiles)
             {
-                _tiles = tiles;
                 _assembledTiles = assembledTiles;
             }
 
             public static Image Create(Tile[] tiles)
             {
                 var variants = tiles.Select(x => x.Variants);
-                foreach (var variant in variants.SelectMany(x=>x))
+                foreach (var variant in variants.SelectMany(x => x))
                 {
                     variant.FillPossibleMatches(tiles);
                 }
 
                 var length = (int) Math.Sqrt(tiles.Length);
-                return new Image(tiles, tiles
+                return new Image(tiles
                     .SelectMany(tile => tile.Variants)
                     .AsParallel()
                     .SelectMany(variant => variant.TryFit(new TileVariant[length, length], tiles.ToHashSet(), 0, 0))
@@ -108,19 +106,59 @@ namespace Day20
                 }
             }
 
-            public int CountRoughness(string monsterMask)
+            public int CountRoughness(string[] monsterMask)
             {
-                return 0;
+                var image = GetAssembledImage();
+                int monsters = 0;
+                for (int i = 0; i < image.GetLength(0) - monsterMask.Length; i++)
+                {
+                    for (int j = 0; j < image.GetLength(1) - monsterMask[0].Length; j++)
+                    {
+                        if (monsterMask.SelectMany((line, x) =>
+                            line.Select((ch, y) => ch != '#' || image[i + x, j + y] == ch)).All(x => x))
+                        {
+                            monsters++;
+                        }
+                    }
+                }
+
+                return image.Length - monsters;
+            }
+
+            private char[,] GetAssembledImage()
+            {
+                var image = new char[_assembledTiles.GetLength(0) * (_assembledTiles[0, 0].Content[0].Length - 2),
+                    _assembledTiles.GetLength(1) * (_assembledTiles[0, 0].Content.Length - 2)];
+                for (int i = 0; i < _assembledTiles.GetLength(0); i++)
+                {
+                    for (int j = 0; j < _assembledTiles.GetLength(1); j++)
+                    {
+                        var tileVariant = _assembledTiles[i, j];
+                        for (int k = 1; k < tileVariant.Content.Length - 1; k++)
+                        {
+                            var row = tileVariant.Content[k];
+                            for (int l = 1; l < row.Length - 1; l++)
+                            {
+                                image[i * (k - 1), j * (l - 1)] = row[l];
+                            }
+                        }
+                    }
+                }
+
+                return image;
             }
         }
 
 
         class TileVariant
         {
+            public string[] Content { get; }
+
             public TileVariant(Tile tile, string[] content)
             {
                 Tile = tile;
                 Borders = GetBorders(content);
+                Content = content;
             }
 
             public Tile Tile { get; }
@@ -264,14 +302,12 @@ namespace Day20
                     var rotatedContent = flip;
                     for (int rotation = 0; rotation < 3; rotation++)
                     {
-                        rotatedContent = rotatedContent
-                            .Select((line, i) =>
-                                line.Select((_, j) => rotatedContent[rotatedContent.Length - j - 1][i]))
-                            .Select(x => new String(x.ToArray())).ToArray();
+                        rotatedContent = Rotate90Degrees(rotatedContent);
                         yield return new TileVariant(this, rotatedContent);
                     }
                 }
             }
+
 
             public static Tile ParseTile(string tile)
             {
@@ -280,6 +316,13 @@ namespace Day20
                 return new Tile(index,
                     tile.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Skip(1).ToArray());
             }
+        }
+
+        private static string[] Rotate90Degrees(string[] image)
+        {
+            return image
+                .Select((line, i) => line.Select((_, j) => image[image.Length - j - 1][i]))
+                .Select(x => new String(x.ToArray())).ToArray();
         }
 
         [Test]
