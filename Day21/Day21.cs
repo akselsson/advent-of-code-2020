@@ -27,17 +27,62 @@ sqjhc mxmxvkd sbzzf (contains fish)";
         {
             Assert.AreEqual(2282,CountAllergens(Input));
         }
+        
+        [Test]
+        public void Example2()
+        {
+            Assert.AreEqual("mxmxvkd,sqjhc,fvjkl",DangerousIngredients(Example));
+        }
+        
+        [Test]
+        public void Part2()
+        {
+            Assert.AreEqual("vrzkz,zjsh,hphcb,mbdksj,vzzxl,ctmzsr,rkzqs,zmhnj",DangerousIngredients(Input));
+        }
+
+        private string DangerousIngredients(string input)
+        {
+            var foods = ParseFoods(input);
+            var allergenToIngredients = AllergenToIngredients(foods);
+            var ingredientToAllergens = allergenToIngredients
+                .SelectMany(x => x.Value.Select(v => (allergen: x.Key, ingredient: v)))
+                .GroupBy(x => x.ingredient)
+                .Select(x => (ingredient: x.Key, allergens: x.Select(y => y.allergen).ToHashSet())).ToArray();
+            foreach (var ingredient in ingredientToAllergens)
+            {
+                Console.WriteLine($"{ingredient.ingredient}: {string.Join(",",ingredient.allergens)}");
+            }
+
+            while (ingredientToAllergens.Any(x => x.allergens.Count > 1))
+            {
+                var toTrim = ingredientToAllergens.Where(x => x.allergens.Count > 1).ToArray();
+                var singleAllergen = ingredientToAllergens.Where(x => x.allergens.Count == 1).ToArray();
+                var allergensToRemove = singleAllergen.SelectMany(x => x.allergens).ToHashSet();
+                ingredientToAllergens = singleAllergen.Concat(
+                    toTrim.Select(x=>(x.ingredient,x.allergens.Except(allergensToRemove).ToHashSet())))
+                    .ToArray();
+            }
+
+            return string.Join(",",ingredientToAllergens.OrderBy(x=>x.allergens.First()).Select(x=>x.ingredient));
+        }
 
         private int CountAllergens(string input)
         {
-            var foods = input.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-                .Select(line =>
-                {
-                    var parts = line.TrimEnd(')').Split('(', StringSplitOptions.RemoveEmptyEntries);
-                    var ingredients = parts[0].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    var allergens = parts[1].Replace("contains", "").Split(',', StringSplitOptions.TrimEntries);
-                    return (ingredients, allergens);
-                }).ToArray();
+            var foods = ParseFoods(input);
+            var allergenToIngredients = AllergenToIngredients(foods);
+
+            foreach (var possibleMatch in allergenToIngredients)
+            {
+                Console.WriteLine($"{possibleMatch.Key}: {string.Join(",",possibleMatch.Value)}");
+            }
+
+            var definiteNonAllergens = foods.SelectMany(x => x.ingredients).Distinct().Except(allergenToIngredients.Values.SelectMany(x=>x).Distinct()).ToHashSet();
+            return foods.SelectMany(f => f.ingredients).Count(x => definiteNonAllergens.Contains(x));
+
+        }
+
+        private static IDictionary<string, string[]> AllergenToIngredients((string[] ingredients, string[] allergens)[] foods)
+        {
             IDictionary<string, string[]> possibleMatches = new Dictionary<string, string[]>();
             foreach (var food in foods)
             {
@@ -54,26 +99,25 @@ sqjhc mxmxvkd sbzzf (contains fish)";
                 }
             }
 
-            foreach (var possibleMatch in possibleMatches)
-            {
-                Console.WriteLine($"{possibleMatch.Key}: {string.Join(",",possibleMatch.Value)}");
-            }
-
-            var definiteNonAllergens = foods.SelectMany(x => x.ingredients).Distinct().Except(possibleMatches.Values.SelectMany(x=>x).Distinct()).ToHashSet();
-            return foods.SelectMany(f => f.ingredients).Count(x => definiteNonAllergens.Contains(x));
-
+            return possibleMatches;
         }
+
+        private static (string[] ingredients, string[] allergens)[] ParseFoods(string input)
+        {
+            var foods = input.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                .Select(line =>
+                {
+                    var parts = line.TrimEnd(')').Split('(', StringSplitOptions.RemoveEmptyEntries);
+                    var ingredients = parts[0].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    var allergens = parts[1].Replace("contains", "").Split(',', StringSplitOptions.TrimEntries);
+                    return (ingredients, allergens);
+                }).ToArray();
+            return foods;
+        }
+
 
         
 
-        [Test]
-        public void Example2()
-        {
-        }
-
-        [Test]
-        public void Part2()
-        {
-        }
+        
     }
 }
