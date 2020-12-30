@@ -33,6 +33,24 @@ Player 2:
             Assert.AreEqual(306, Play(Example));
         }
 
+        [Test]
+        public void Part1()
+        {
+            Assert.AreEqual(33631, Play(Input));
+        }
+
+        [Test]
+        public void Example2()
+        {
+            Assert.AreEqual(291, PlayRecursive(Example));
+        }
+
+        [Test]
+        public void Part2()
+        {
+            Assert.AreEqual(33469, PlayRecursive(Input));
+        }
+        
         private int Play(string input)
         {
             var decks = ParseInput(input);
@@ -46,7 +64,7 @@ Player 2:
         }
 
         private static void CalculateWinnerOfRoundAndAddToDeck(List<int> cards,
-            List<(string Name, Queue<int> Cards, bool Winner)> decks)
+            List<(string Name, Queue<int> Cards)> decks)
         {
             var winner = cards.IndexOf(cards.Max());
             foreach (var card in cards.OrderByDescending(x => x))
@@ -66,7 +84,7 @@ Player 2:
                 .Sum();
         }
 
-        private static List<(string Name, Queue<int> Cards, bool Winner)> ParseInput(string input)
+        private static List<(string Name, Queue<int> Cards)> ParseInput(string input)
         {
             var decks = input
                 .Split(Environment.NewLine + Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
@@ -74,27 +92,9 @@ Player 2:
                 {
                     var lines = player.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
                     var cards = new Queue<int>(lines.Skip(1).Select(int.Parse).ToArray());
-                    return (Name: lines[0], Cards: cards, Winner: false);
+                    return (Name: lines[0], Cards: cards);
                 }).ToList();
             return decks;
-        }
-
-        [Test]
-        public void Part1()
-        {
-            Assert.AreEqual(33631, Play(Input));
-        }
-
-        [Test]
-        public void Example2()
-        {
-            Assert.AreEqual(291, PlayRecursive(Example));
-        }
-
-        [Test]
-        public void Part2()
-        {
-            Assert.AreEqual(33469, PlayRecursive(Input));
         }
 
         private int PlayRecursive(string input)
@@ -106,9 +106,9 @@ Player 2:
                 var decks = ParseInput(input);
 
                 int games = 1;
-                decks = PlayRecursive(decks, new HashSet<string>(), 1, 1, ref games);
+                var result  = PlayRecursive(decks, new HashSet<string>(), 1, 1, ref games);
 
-                score = CalculateScore(decks);
+                score = CalculateScore(result);
             }, maxStackSize);
             thread.Start();
             thread.Join();
@@ -116,7 +116,7 @@ Player 2:
         }
 
         private List<(string Name, Queue<int> Cards, bool Winner)> PlayRecursive(
-            List<(string Name, Queue<int> Cards, bool Winner)> decks,
+            List<(string Name, Queue<int> Cards)> decks,
             HashSet<string> history, int round, int game, ref int gameCounter)
         {
             while (true)
@@ -149,13 +149,12 @@ Player 2:
                         valueTuples
                             .Select(x => (
                                 x.First.Name,
-                                new Queue<int>(x.First.Cards.Take(x.Second)),
-                                false
+                                new Queue<int>(x.First.Cards.Take(x.Second))
                             ))
                             .ToList(),
                         new HashSet<string>(),
                         1,
-                        gameCounter, 
+                        gameCounter,
                         ref gameCounter);
                     var winner = subgameResult.IndexOf(subgameResult.Find(x => x.Winner));
                     decks[winner].Cards.Enqueue(drawnCards[winner]);
@@ -168,7 +167,7 @@ Player 2:
             }
         }
 
-        private string CalculateHistory(List<(string Name, Queue<int> Cards, bool Winner)> decks)
+        private string CalculateHistory(List<(string Name, Queue<int> Cards)> decks)
         {
             return string.Join(Environment.NewLine, decks.Select(x => $"{x.Name} {string.Join(",", x.Cards)}"));
         }
