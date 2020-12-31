@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using NUnit.Framework;
@@ -29,7 +30,13 @@ namespace Day23
         [Test]
         public void Example2()
         {
-            Assert.AreEqual(149245887792,CalculatePart1Answer(Example,10_000_000,1_000_000));
+            Assert.AreEqual(149245887792,CalculatePart2Answer(Example,10_000_000,1_000_000));
+        }
+        
+        [Test]
+        public void Part2()
+        {
+            Assert.AreEqual(111057672960,CalculatePart2Answer(Input,10_000_000,1_000_000));
         }
 
         private string CalculatePart1Answer(string input, int iterations)
@@ -47,20 +54,33 @@ namespace Day23
             var list = DoSimulate(input, iterations, ensureLength);
 
             var one = list.Find(1);
+            var next = one.Next;
+            var nextNext = next.Next;
+            var answer = (long)next.Value * nextNext.Value;
 
-            return one.Next.Value * one.Next.Next.Value;
+            Console.WriteLine($"{next.Value} * {nextNext.Value} = {answer}");
+            return answer;
         }
 
         private static LinkedList<int> DoSimulate(string input, int iterations, int ensureLength)
         {
-            LinkedList<int> list = new LinkedList<int>(input.Select(x => int.Parse(new String(x, 1))));
+            LinkedList<int> list = new LinkedList<int>();
+            var nodes = new Dictionary<int, LinkedListNode<int>>(ensureLength);
+
+            foreach (var character in input)
+            {
+                var node = list.AddLast(int.Parse(new String(character, 1)));
+                nodes[node.Value] = node;
+            }
             var max = list.Max();
             var min = list.Min();
-            foreach (var extra in Enumerable.Range(max, Math.Max(ensureLength - list.Count, 0)))
+            foreach (var extra in Enumerable.Range(max+1, Math.Max(ensureLength - list.Count, 0)))
             {
-                list.AddLast(extra);
+                var node = list.AddLast(extra);
+                nodes[node.Value] = node;
+                max = extra;
             }
-
+            
             var current = list.First;
             int iteration = 0;
             while (iteration++ < iterations)
@@ -69,6 +89,7 @@ namespace Day23
                 {
                     var next = current.Next ?? list.First;
                     list.Remove(next);
+                    nodes.Remove(next.Value);
                     return next.Value;
                 }).ToArray();
 
@@ -78,11 +99,12 @@ namespace Day23
                     destination = (destination - 1 < min ? max : destination - 1);
                 }
 
-                var destinationNode = list.Find(destination);
+                var destinationNode = nodes[destination];
 
                 foreach (var toAdd in remove.Reverse())
                 {
-                    list.AddAfter(destinationNode, toAdd);
+                    var node = list.AddAfter(destinationNode, toAdd);
+                    nodes[node.Value] = node;
                 }
 
                 current = current.Next ?? list.First;
@@ -92,10 +114,5 @@ namespace Day23
             return list;
         }
 
-
-        [Test]
-        public void Part2()
-        {
-        }
     }
 }
