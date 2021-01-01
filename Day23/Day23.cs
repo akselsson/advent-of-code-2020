@@ -65,11 +65,11 @@ namespace Day23
         private static LinkedList<int> DoSimulate(string input, int iterations, int ensureLength)
         {
             LinkedList<int> list = new LinkedList<int>();
-            var nodes = new Dictionary<int, LinkedListNode<int>>(ensureLength);
+            var nodes = new LinkedListNode<int>[Math.Max(input.Length, ensureLength)+1];
 
             foreach (var character in input)
             {
-                var node = list.AddLast(int.Parse(new String(character, 1)));
+                var node = list.AddLast(character - '0');
                 nodes[node.Value] = node;
             }
             var max = list.Max();
@@ -83,27 +83,28 @@ namespace Day23
             
             var current = list.First;
             int iteration = 0;
+            var remove = new int[3];
+
             while (iteration++ < iterations)
             {
-                var remove = Enumerable.Range(0, 3).Select(x =>
+                for (int i = 0; i < remove.Length; i++)
                 {
                     var next = current.Next ?? list.First;
                     list.Remove(next);
-                    nodes.Remove(next.Value);
-                    return next.Value;
-                }).ToArray();
+                    nodes[next.Value] = null;
+                    remove[i] = next.Value;
+                }
 
                 var destination = current.Value - 1 < min ? max : current.Value - 1;
-                while (remove.Contains(destination))
+                while (nodes[destination] == null)
                 {
                     destination = (destination - 1 < min ? max : destination - 1);
                 }
 
                 var destinationNode = nodes[destination];
-
-                foreach (var toAdd in remove.Reverse())
+                for (int i = remove.Length - 1; i >= 0; i--)
                 {
-                    var node = list.AddAfter(destinationNode, toAdd);
+                    var node = list.AddAfter(destinationNode, remove[i]);
                     nodes[node.Value] = node;
                 }
 
